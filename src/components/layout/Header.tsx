@@ -1,12 +1,31 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, Phone, Mail } from "lucide-react";
+import { Menu, Phone, Mail, User, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { user, session } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to sign out. Please try again.",
+        variant: "destructive"
+      });
+    } else {
+      navigate("/");
+    }
+  };
 
   const navItems = [
     { href: "/", label: "Home" },
@@ -75,11 +94,31 @@ const Header = () => {
             ))}
           </nav>
 
-          {/* CTA Button */}
-          <div className="hidden md:block">
-            <Button asChild className="btn-primary">
-              <Link to="/apply">Apply for Loan</Link>
-            </Button>
+          {/* CTA Button / User Menu */}
+          <div className="hidden md:flex items-center gap-3">
+            {session ? (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/dashboard">
+                    <User className="h-4 w-4 mr-2" />
+                    Dashboard
+                  </Link>
+                </Button>
+                <Button onClick={handleSignOut} variant="outline" size="sm">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link to="/auth">Sign In</Link>
+                </Button>
+                <Button asChild className="btn-primary">
+                  <Link to="/apply">Apply for Loan</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu */}
@@ -105,11 +144,37 @@ const Header = () => {
                     {item.label}
                   </Link>
                 ))}
-                <Button asChild className="btn-primary mt-4">
-                  <Link to="/apply" onClick={() => setIsOpen(false)}>
-                    Apply for Loan
-                  </Link>
-                </Button>
+                {session ? (
+                  <>
+                    <Button asChild className="btn-primary mt-4">
+                      <Link to="/dashboard" onClick={() => setIsOpen(false)}>
+                        <User className="h-4 w-4 mr-2" />
+                        Dashboard
+                      </Link>
+                    </Button>
+                    <Button 
+                      onClick={() => { handleSignOut(); setIsOpen(false); }} 
+                      variant="outline" 
+                      className="mt-2"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button asChild variant="outline" className="mt-4">
+                      <Link to="/auth" onClick={() => setIsOpen(false)}>
+                        Sign In
+                      </Link>
+                    </Button>
+                    <Button asChild className="btn-primary mt-2">
+                      <Link to="/apply" onClick={() => setIsOpen(false)}>
+                        Apply for Loan
+                      </Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </SheetContent>
           </Sheet>

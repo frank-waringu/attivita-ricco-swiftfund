@@ -5,7 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Upload,
   FileText,
@@ -16,10 +20,17 @@ import {
   CheckCircle,
   AlertCircle,
   Phone,
-  Mail
+  Mail,
+  Loader2
 } from "lucide-react";
 
 const Apply = () => {
+  const { user, session, loading } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [submitting, setSubmitting] = useState(false);
+  const [loanProducts, setLoanProducts] = useState<any[]>([]);
+
   const [formData, setFormData] = useState({
     fullName: "",
     idNumber: "",
@@ -27,12 +38,55 @@ const Apply = () => {
     email: "",
     businessName: "",
     businessType: "",
+    loanProductId: "",
     loanAmount: "",
+    termMonths: "",
     loanPurpose: "",
     guarantorName: "",
     guarantorPhone: "",
-    guarantorId: ""
+    guarantorId: "",
+    guarantorRelationship: "",
+    address: "",
+    county: "",
+    businessLocation: "",
+    businessDescription: "",
+    monthlyRevenue: ""
   });
+
+  useEffect(() => {
+    if (!loading && !session) {
+      navigate("/auth");
+    }
+  }, [session, loading, navigate]);
+
+  useEffect(() => {
+    if (session?.user) {
+      // Pre-fill form with user data
+      setFormData(prev => ({
+        ...prev,
+        email: session.user.email || ""
+      }));
+      fetchLoanProducts();
+    }
+  }, [session]);
+
+  const fetchLoanProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("loan_products")
+        .select("*")
+        .eq("is_active", true)
+        .order("min_amount");
+
+      if (error) {
+        console.error("Error fetching loan products:", error);
+      } else {
+        setLoanProducts(data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching loan products:", error);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -42,10 +96,94 @@ const Apply = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Form submission will need backend integration
-    alert("Form submission requires backend integration. Please connect to Supabase for full functionality.");
+    
+    if (!session?.user) {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to submit a loan application.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      // First, create or update profile
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .upsert({
+          user_id: session.user.id,
+          full_name: formData.fullName,
+          national_id: formData.idNumber,
+          phone: formData.phone,
+          email: formData.email,
+          address: formData.address,
+          county: formData.county
+        });
+
+      if (profileError) throw profileError;
+
+      // Create business record
+      const { error: businessError } = await supabase
+        .from("businesses")
+        .upsert({
+          user_id: session.user.id,
+          business_name: formData.businessName,
+          business_type: formData.businessType,
+          business_location: formData.businessLocation,
+          business_description: formData.businessDescription,
+          monthly_revenue: formData.monthlyRevenue ? parseFloat(formData.monthlyRevenue) : null
+        });
+
+      if (businessError) throw businessError;
+
+      // Create guarantor record
+      const { error: guarantorError } = await supabase
+        .from("guarantors")
+        .insert({
+          user_id: session.user.id,
+          full_name: formData.guarantorName,
+          national_id: formData.guarantorId,
+          phone: formData.guarantorPhone,
+          relationship: formData.guarantorRelationship
+        });
+
+      if (guarantorError) throw guarantorError;
+
+      // Create loan application
+      const { error: applicationError } = await supabase
+        .from("loan_applications")
+        .insert({
+          user_id: session.user.id,
+          loan_product_id: formData.loanProductId,
+          amount: parseFloat(formData.loanAmount),
+          term_months: parseInt(formData.termMonths),
+          purpose: formData.loanPurpose,
+          status: "pending"
+        });
+
+      if (applicationError) throw applicationError;
+
+      toast({
+        title: "Application submitted successfully!",
+        description: "Your loan application has been submitted for review. You will receive updates via email and SMS."
+      });
+
+      navigate("/dashboard");
+
+    } catch (error: any) {
+      console.error("Error submitting application:", error);
+      toast({
+        title: "Submission failed",
+        description: error.message || "Failed to submit your application. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const requiredDocuments = [
@@ -219,13 +357,93 @@ const Apply = () => {
                       </select>
                     </div>
                   </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="businessLocation">Business Location *</Label>
+                      <Input
+                        id="businessLocation"
+                        name="businessLocation"
+                        value={formData.businessLocation}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Nairobi, Karen"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="monthlyRevenue">Monthly Revenue (Ksh)</Label>
+                      <Input
+                        id="monthlyRevenue"
+                        name="monthlyRevenue"
+                        type="number"
+                        value={formData.monthlyRevenue}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 50000"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="businessDescription">Business Description</Label>
+                    <Textarea
+                      id="businessDescription"
+                      name="businessDescription"
+                      value={formData.businessDescription}
+                      onChange={handleInputChange}
+                      placeholder="Brief description of your business activities"
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="address">Your Address *</Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        placeholder="Physical address"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="county">County *</Label>
+                      <Input
+                        id="county"
+                        name="county"
+                        value={formData.county}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Nairobi"
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 {/* Loan Information */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground border-b pb-2">Loan Information</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <Label htmlFor="loanProductId">Loan Product *</Label>
+                      <select
+                        id="loanProductId"
+                        name="loanProductId"
+                        value={formData.loanProductId}
+                        onChange={handleInputChange}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required
+                      >
+                        <option value="">Select loan product</option>
+                        {loanProducts.map(product => (
+                          <option key={product.id} value={product.id}>
+                            {product.name} ({product.interest_rate}% monthly)
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                     <div>
                       <Label htmlFor="loanAmount">Loan Amount (Ksh) *</Label>
                       <Input
@@ -240,25 +458,40 @@ const Apply = () => {
                         required
                       />
                     </div>
-                    <div className="md:col-span-1">
-                      <Label htmlFor="loanPurpose">Loan Purpose *</Label>
-                      <select
-                        id="loanPurpose"
-                        name="loanPurpose"
-                        value={formData.loanPurpose}
+                    <div>
+                      <Label htmlFor="termMonths">Loan Term (Months) *</Label>
+                      <Input
+                        id="termMonths"
+                        name="termMonths"
+                        type="number"
+                        value={formData.termMonths}
                         onChange={handleInputChange}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        placeholder="e.g., 12"
+                        min="1"
+                        max="24"
                         required
-                      >
-                        <option value="">Select loan purpose</option>
-                        <option value="business-expansion">Business Expansion</option>
-                        <option value="working-capital">Working Capital</option>
-                        <option value="inventory">Inventory Purchase</option>
-                        <option value="equipment">Equipment Purchase</option>
-                        <option value="startup">Start-up Capital</option>
-                        <option value="other">Other</option>
-                      </select>
+                      />
                     </div>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="loanPurpose">Loan Purpose *</Label>
+                    <select
+                      id="loanPurpose"
+                      name="loanPurpose"
+                      value={formData.loanPurpose}
+                      onChange={handleInputChange}
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      required
+                    >
+                      <option value="">Select loan purpose</option>
+                      <option value="business-expansion">Business Expansion</option>
+                      <option value="working-capital">Working Capital</option>
+                      <option value="inventory">Inventory Purchase</option>
+                      <option value="equipment">Equipment Purchase</option>
+                      <option value="startup">Start-up Capital</option>
+                      <option value="other">Other</option>
+                    </select>
                   </div>
                 </div>
 
@@ -266,7 +499,7 @@ const Apply = () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground border-b pb-2">Guarantor Information</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="guarantorName">Guarantor Full Name *</Label>
                       <Input
@@ -278,6 +511,29 @@ const Apply = () => {
                         required
                       />
                     </div>
+                    <div>
+                      <Label htmlFor="guarantorRelationship">Relationship *</Label>
+                      <select
+                        id="guarantorRelationship"
+                        name="guarantorRelationship"
+                        value={formData.guarantorRelationship}
+                        onChange={handleInputChange}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        required
+                      >
+                        <option value="">Select relationship</option>
+                        <option value="spouse">Spouse</option>
+                        <option value="parent">Parent</option>
+                        <option value="sibling">Sibling</option>
+                        <option value="friend">Friend</option>
+                        <option value="colleague">Colleague</option>
+                        <option value="business-partner">Business Partner</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="guarantorPhone">Guarantor Phone *</Label>
                       <Input
@@ -342,8 +598,15 @@ const Apply = () => {
                   </div>
                 </div>
 
-                <Button type="submit" className="w-full btn-primary text-lg py-6">
-                  Submit Loan Application
+                <Button type="submit" className="w-full btn-primary text-lg py-6" disabled={submitting}>
+                  {submitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Submitting Application...
+                    </>
+                  ) : (
+                    "Submit Loan Application"
+                  )}
                 </Button>
               </form>
             </Card>
