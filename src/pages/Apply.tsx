@@ -5,13 +5,9 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Upload,
   FileText,
   CreditCard,
   UserCheck,
@@ -25,11 +21,8 @@ import {
 } from "lucide-react";
 
 const Apply = () => {
-  const { user, session, loading } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
-  const [loanProducts, setLoanProducts] = useState<any[]>([]);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -38,7 +31,6 @@ const Apply = () => {
     email: "",
     businessName: "",
     businessType: "",
-    loanProductId: "",
     loanAmount: "",
     termMonths: "",
     loanPurpose: "",
@@ -53,41 +45,6 @@ const Apply = () => {
     monthlyRevenue: ""
   });
 
-  useEffect(() => {
-    if (!loading && !session) {
-      navigate("/auth");
-    }
-  }, [session, loading, navigate]);
-
-  useEffect(() => {
-    if (session?.user) {
-      // Pre-fill form with user data
-      setFormData(prev => ({
-        ...prev,
-        email: session.user.email || ""
-      }));
-      fetchLoanProducts();
-    }
-  }, [session]);
-
-  const fetchLoanProducts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("loan_products")
-        .select("*")
-        .eq("is_active", true)
-        .order("min_amount");
-
-      if (error) {
-        console.error("Error fetching loan products:", error);
-      } else {
-        setLoanProducts(data || []);
-      }
-    } catch (error) {
-      console.error("Error fetching loan products:", error);
-    }
-  };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -98,92 +55,39 @@ const Apply = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!session?.user) {
-      toast({
-        title: "Authentication required",
-        description: "Please sign in to submit a loan application.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setSubmitting(true);
 
-    try {
-      // First, create or update profile
-      const { error: profileError } = await supabase
-        .from("profiles")
-        .upsert({
-          user_id: session.user.id,
-          full_name: formData.fullName,
-          national_id: formData.idNumber,
-          phone: formData.phone,
-          email: formData.email,
-          address: formData.address,
-          county: formData.county
-        });
-
-      if (profileError) throw profileError;
-
-      // Create business record
-      const { error: businessError } = await supabase
-        .from("businesses")
-        .upsert({
-          user_id: session.user.id,
-          business_name: formData.businessName,
-          business_type: formData.businessType,
-          business_location: formData.businessLocation,
-          business_description: formData.businessDescription,
-          monthly_revenue: formData.monthlyRevenue ? parseFloat(formData.monthlyRevenue) : null
-        });
-
-      if (businessError) throw businessError;
-
-      // Create guarantor record
-      const { error: guarantorError } = await supabase
-        .from("guarantors")
-        .insert({
-          user_id: session.user.id,
-          full_name: formData.guarantorName,
-          national_id: formData.guarantorId,
-          phone: formData.guarantorPhone,
-          relationship: formData.guarantorRelationship
-        });
-
-      if (guarantorError) throw guarantorError;
-
-      // Create loan application
-      const { error: applicationError } = await supabase
-        .from("loan_applications")
-        .insert({
-          user_id: session.user.id,
-          loan_product_id: formData.loanProductId,
-          amount: parseFloat(formData.loanAmount),
-          term_months: parseInt(formData.termMonths),
-          purpose: formData.loanPurpose,
-          status: "pending"
-        });
-
-      if (applicationError) throw applicationError;
-
+    // Simulate form submission
+    setTimeout(() => {
       toast({
         title: "Application submitted successfully!",
-        description: "Your loan application has been submitted for review. You will receive updates via email and SMS."
+        description: "Thank you for your application. We will contact you within 24 hours."
       });
-
-      navigate("/dashboard");
-
-    } catch (error: any) {
-      console.error("Error submitting application:", error);
-      toast({
-        title: "Submission failed",
-        description: error.message || "Failed to submit your application. Please try again.",
-        variant: "destructive"
+      
+      // Reset form
+      setFormData({
+        fullName: "",
+        idNumber: "",
+        phone: "",
+        email: "",
+        businessName: "",
+        businessType: "",
+        loanAmount: "",
+        termMonths: "",
+        loanPurpose: "",
+        guarantorName: "",
+        guarantorPhone: "",
+        guarantorId: "",
+        guarantorRelationship: "",
+        address: "",
+        county: "",
+        businessLocation: "",
+        businessDescription: "",
+        monthlyRevenue: ""
       });
-    } finally {
+      
       setSubmitting(false);
-    }
+    }, 2000);
   };
 
   const requiredDocuments = [
@@ -214,7 +118,7 @@ const Apply = () => {
   ];
 
   const benefits = [
-    "12-hour processing time",
+    "Quick processing time",
     "Competitive interest rates",
     "Flexible repayment terms",
     "No hidden fees",
@@ -234,12 +138,12 @@ const Apply = () => {
               Apply for Business Loan
             </h1>
             <p className="text-xl lg:text-2xl opacity-90 leading-relaxed">
-              Get funded in just 12 hours. Complete our simple application form 
+              Get funded quickly. Complete our simple application form 
               and take your business to the next level.
             </p>
             <div className="flex items-center justify-center gap-2 text-secondary">
               <Clock className="h-5 w-5" />
-              <span className="font-semibold">Average processing time: 12 hours</span>
+              <span className="font-semibold">We'll contact you within 24 hours</span>
             </div>
           </div>
         </div>
@@ -425,25 +329,7 @@ const Apply = () => {
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground border-b pb-2">Loan Information</h3>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div>
-                      <Label htmlFor="loanProductId">Loan Product *</Label>
-                      <select
-                        id="loanProductId"
-                        name="loanProductId"
-                        value={formData.loanProductId}
-                        onChange={handleInputChange}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        required
-                      >
-                        <option value="">Select loan product</option>
-                        {loanProducts.map(product => (
-                          <option key={product.id} value={product.id}>
-                            {product.name} ({product.interest_rate}% monthly)
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="loanAmount">Loan Amount (Ksh) *</Label>
                       <Input
@@ -476,22 +362,15 @@ const Apply = () => {
 
                   <div>
                     <Label htmlFor="loanPurpose">Loan Purpose *</Label>
-                    <select
+                    <Textarea
                       id="loanPurpose"
                       name="loanPurpose"
                       value={formData.loanPurpose}
                       onChange={handleInputChange}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      placeholder="Describe how you plan to use the loan"
+                      rows={3}
                       required
-                    >
-                      <option value="">Select loan purpose</option>
-                      <option value="business-expansion">Business Expansion</option>
-                      <option value="working-capital">Working Capital</option>
-                      <option value="inventory">Inventory Purchase</option>
-                      <option value="equipment">Equipment Purchase</option>
-                      <option value="startup">Start-up Capital</option>
-                      <option value="other">Other</option>
-                    </select>
+                    />
                   </div>
                 </div>
 
@@ -507,33 +386,10 @@ const Apply = () => {
                         name="guarantorName"
                         value={formData.guarantorName}
                         onChange={handleInputChange}
-                        placeholder="Guarantor's full name"
+                        placeholder="Enter guarantor's full name"
                         required
                       />
                     </div>
-                    <div>
-                      <Label htmlFor="guarantorRelationship">Relationship *</Label>
-                      <select
-                        id="guarantorRelationship"
-                        name="guarantorRelationship"
-                        value={formData.guarantorRelationship}
-                        onChange={handleInputChange}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                        required
-                      >
-                        <option value="">Select relationship</option>
-                        <option value="spouse">Spouse</option>
-                        <option value="parent">Parent</option>
-                        <option value="sibling">Sibling</option>
-                        <option value="friend">Friend</option>
-                        <option value="colleague">Colleague</option>
-                        <option value="business-partner">Business Partner</option>
-                        <option value="other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="guarantorPhone">Guarantor Phone *</Label>
                       <Input
@@ -546,6 +402,9 @@ const Apply = () => {
                         required
                       />
                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="guarantorId">Guarantor ID Number *</Label>
                       <Input
@@ -553,61 +412,69 @@ const Apply = () => {
                         name="guarantorId"
                         value={formData.guarantorId}
                         onChange={handleInputChange}
-                        placeholder="Guarantor's ID number"
+                        placeholder="Enter guarantor's ID number"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="guarantorRelationship">Relationship *</Label>
+                      <Input
+                        id="guarantorRelationship"
+                        name="guarantorRelationship"
+                        value={formData.guarantorRelationship}
+                        onChange={handleInputChange}
+                        placeholder="e.g., Friend, Family Member"
                         required
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Document Upload Section */}
+                {/* Required Documents */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold text-foreground border-b pb-2">Required Documents</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Please upload clear, readable copies of all required documents
-                  </p>
-                  
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {requiredDocuments.map((doc, index) => (
-                      <div key={index} className="border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors">
-                        <doc.icon className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
-                        <h4 className="font-semibold text-sm mb-1">{doc.title}</h4>
-                        <p className="text-xs text-muted-foreground mb-3">{doc.description}</p>
-                        <Button variant="outline" size="sm" className="w-full">
-                          <Upload className="h-4 w-4 mr-2" />
-                          Upload File
-                        </Button>
-                      </div>
-                    ))}
+                    {requiredDocuments.map((doc, index) => {
+                      const IconComponent = doc.icon;
+                      return (
+                        <div key={index} className="flex items-start gap-3 p-4 border rounded-lg">
+                          <IconComponent className="h-5 w-5 text-primary mt-1 flex-shrink-0" />
+                          <div>
+                            <h4 className="font-medium text-foreground">{doc.title}</h4>
+                            <p className="text-sm text-muted-foreground">{doc.description}</p>
+                            {doc.required && (
+                              <span className="text-xs text-primary font-medium">Required</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Note:</strong> Please have these documents ready before submitting your application. 
+                      Our team will contact you for document collection after initial review.
+                    </p>
                   </div>
                 </div>
 
-                {/* Terms and Conditions */}
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2">
-                    <input type="checkbox" id="terms" required className="h-4 w-4" />
-                    <Label htmlFor="terms" className="text-sm">
-                      I agree to the <a href="/terms" className="text-primary hover:underline">Terms and Conditions</a> and <a href="/privacy" className="text-primary hover:underline">Privacy Policy</a> *
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <input type="checkbox" id="consent" required className="h-4 w-4" />
-                    <Label htmlFor="consent" className="text-sm">
-                      I consent to Attivita Ricco contacting me regarding my loan application *
-                    </Label>
-                  </div>
+                {/* Submit Button */}
+                <div className="pt-6">
+                  <Button 
+                    type="submit" 
+                    className="w-full btn-primary h-12 text-lg font-semibold"
+                    disabled={submitting}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Submitting Application...
+                      </>
+                    ) : (
+                      "Submit Application"
+                    )}
+                  </Button>
                 </div>
-
-                <Button type="submit" className="w-full btn-primary text-lg py-6" disabled={submitting}>
-                  {submitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Submitting Application...
-                    </>
-                  ) : (
-                    "Submit Loan Application"
-                  )}
-                </Button>
               </form>
             </Card>
           </div>
@@ -615,50 +482,61 @@ const Apply = () => {
           {/* Sidebar */}
           <div className="space-y-6">
             
-            {/* Why Choose Us */}
-            <Card className="card-professional p-6">
-              <h3 className="text-xl font-bold text-primary mb-4">Why Choose Attivita Ricco?</h3>
-              <div className="space-y-3">
-                {benefits.map((benefit, index) => (
-                  <div key={index} className="flex items-center gap-3">
-                    <CheckCircle className="h-5 w-5 text-secondary flex-shrink-0" />
-                    <span className="text-sm">{benefit}</span>
-                  </div>
-                ))}
+            {/* Benefits Card */}
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Why Choose Us?</h3>
               </div>
+              <ul className="space-y-3">
+                {benefits.map((benefit, index) => (
+                  <li key={index} className="flex items-center gap-2 text-sm">
+                    <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    <span>{benefit}</span>
+                  </li>
+                ))}
+              </ul>
             </Card>
 
-            {/* Contact Support */}
-            <Card className="card-professional p-6">
-              <h3 className="text-xl font-bold text-primary mb-4">Need Help?</h3>
-              <p className="text-muted-foreground text-sm mb-4">
-                Our team is here to assist you with your loan application.
-              </p>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
+            {/* Contact Card */}
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Phone className="h-5 w-5 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">Need Help?</h3>
+              </div>
+              <div className="space-y-3 text-sm">
+                <div className="flex items-center gap-2">
                   <Phone className="h-4 w-4 text-primary" />
-                  <span className="text-sm">+254 738 810 000</span>
+                  <span>+254 738 810 000</span>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-primary" />
-                  <span className="text-sm">info@attivitar.com</span>
+                  <span>info@attivitar.com</span>
                 </div>
+                <p className="text-muted-foreground">
+                  Our team is available Monday to Friday, 8:00 AM to 6:00 PM
+                </p>
               </div>
             </Card>
 
             {/* Security Notice */}
-            <Card className="card-professional p-6 bg-muted/50">
+            <Card className="p-6 bg-amber-50 border-amber-200">
               <div className="flex items-start gap-3">
-                <Shield className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                <Shield className="h-5 w-5 text-amber-600 mt-1 flex-shrink-0" />
                 <div>
-                  <h4 className="font-semibold text-sm mb-2">Your Data is Secure</h4>
-                  <p className="text-xs text-muted-foreground">
-                    All information is encrypted and protected. We are fully licensed 
-                    and regulated by the Central Bank of Kenya.
+                  <h4 className="font-medium text-amber-800 mb-2">Security Notice</h4>
+                  <p className="text-sm text-amber-700">
+                    Your information is protected with bank-level security. 
+                    We never share your personal data with third parties.
                   </p>
                 </div>
               </div>
             </Card>
+
           </div>
         </div>
       </div>
