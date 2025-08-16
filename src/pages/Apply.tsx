@@ -23,6 +23,7 @@ import {
 const Apply = () => {
   const { toast } = useToast();
   const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const [formData, setFormData] = useState({
     fullName: "",
@@ -59,33 +60,7 @@ const Apply = () => {
 
     // Simulate form submission
     setTimeout(() => {
-      toast({
-        title: "Application submitted successfully!",
-        description: "Thank you for your application. Please call us to proceed: Head Office (0738810000), Field Officers (0732260000 or 0780800600)."
-      });
-      
-      // Reset form
-      setFormData({
-        fullName: "",
-        idNumber: "",
-        phone: "",
-        email: "",
-        businessName: "",
-        businessType: "",
-        loanAmount: "",
-        termMonths: "",
-        loanPurpose: "",
-        guarantorName: "",
-        guarantorPhone: "",
-        guarantorId: "",
-        guarantorRelationship: "",
-        address: "",
-        county: "",
-        businessLocation: "",
-        businessDescription: "",
-        monthlyRevenue: ""
-      });
-      
+      setSubmitted(true);
       setSubmitting(false);
     }, 2000);
   };
@@ -154,6 +129,35 @@ const Apply = () => {
           
           {/* Application Form */}
           <div className="lg:col-span-2">
+            {submitted ? (
+              <Card className="professional-form">
+                <div className="text-center space-y-6 py-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-green-600">Application Submitted Successfully!</h2>
+                  <div className="space-y-4">
+                    <p className="text-lg text-foreground">
+                      Thank you for your application. Please contact us to proceed:
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-center gap-2">
+                        <Phone className="h-4 w-4 text-primary" />
+                        <span className="font-semibold">Head Office:</span>
+                        <a href="tel:0738810000" className="text-primary hover:underline">0738810000</a>
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <Phone className="h-4 w-4 text-primary" />
+                        <span className="font-semibold">Field Officers:</span>
+                        <a href="tel:0732260000" className="text-primary hover:underline">0732260000</a>
+                        <span>or</span>
+                        <a href="tel:0780800600" className="text-primary hover:underline">0780800600</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ) : (
             <Card className="professional-form">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -477,6 +481,7 @@ const Apply = () => {
                 </div>
               </form>
             </Card>
+            )}
           </div>
 
           {/* Sidebar */}

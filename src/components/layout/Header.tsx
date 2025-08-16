@@ -55,16 +55,15 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="flex items-center gap-2">
-              <div className="w-12 h-12 flex items-center justify-center">
+              <div className="w-16 h-16 flex items-center justify-center">
                 <img 
                   src={attivitaLogo} 
                   alt="Attivita Ricco Logo" 
-                  className="w-10 h-10 object-contain"
+                  className="w-14 h-14 object-contain"
                 />
               </div>
               <div>
                 <div className="font-bold text-xl text-primary">Attivita Ricco Ltd</div>
-                <div className="text-xs text-muted-foreground">Microfinance Ltd</div>
               </div>
             </div>
           </Link>
