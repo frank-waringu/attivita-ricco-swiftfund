@@ -21,7 +21,7 @@ const Services = () => {
     {
       title: "Business Growth Loans",
       description: "Expand your existing business operations, purchase inventory, or invest in new equipment.",
-      minAmount: "Ksh 10,000",
+      minAmount: "Ksh 5,000",
       maxAmount: "Ksh 1,000,000",
       term: "3-24 months",
       rate: "From 2.5% per month",
