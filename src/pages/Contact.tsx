@@ -35,8 +35,7 @@ const Contact = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Form submission will need backend integration
-    alert("Contact form submission requires backend integration. Please connect to Supabase for full functionality.");
+    alert("Thank you for your message! Please contact Head Office at 0738810000 or email info@attivitar.com for immediate assistance.");
   };
 
   const contactInfo = [

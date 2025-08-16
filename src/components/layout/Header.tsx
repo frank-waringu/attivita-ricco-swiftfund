@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Phone, Mail } from "lucide-react";
+import attivitaLogo from "@/assets/attivita-ricco-logo.png";
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
@@ -54,8 +55,12 @@ const Header = () => {
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-2">
             <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xl">A</span>
+              <div className="w-12 h-12 flex items-center justify-center">
+                <img 
+                  src={attivitaLogo} 
+                  alt="Attivita Ricco Logo" 
+                  className="w-10 h-10 object-contain"
+                />
               </div>
               <div>
                 <div className="font-bold text-xl text-primary">Attivita Ricco Ltd</div>
