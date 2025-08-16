@@ -3,24 +3,30 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu, Phone, Mail } from "lucide-react";
-
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
-
-  const navItems = [
-    { href: "/", label: "Home" },
-    { href: "/about", label: "About Us" },
-    { href: "/services", label: "Loan Services" },
-    { href: "/apply", label: "Apply Now" },
-    { href: "/faqs", label: "FAQs" },
-    { href: "/contact", label: "Contact" },
-  ];
-
+  const navItems = [{
+    href: "/",
+    label: "Home"
+  }, {
+    href: "/about",
+    label: "About Us"
+  }, {
+    href: "/services",
+    label: "Loan Services"
+  }, {
+    href: "/apply",
+    label: "Apply Now"
+  }, {
+    href: "/faqs",
+    label: "FAQs"
+  }, {
+    href: "/contact",
+    label: "Contact"
+  }];
   const isActive = (path: string) => location.pathname === path;
-
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  return <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       {/* Top contact bar */}
       <div className="bg-primary/5 border-b border-primary/10">
         <div className="container mx-auto px-4 py-2">
@@ -52,7 +58,7 @@ const Header = () => {
                 <span className="text-primary-foreground font-bold text-xl">A</span>
               </div>
               <div>
-                <div className="font-bold text-xl text-primary">Attivita Ricco</div>
+                <div className="font-bold text-xl text-primary">Attivita Ricco Ltd</div>
                 <div className="text-xs text-muted-foreground">Microfinance Ltd</div>
               </div>
             </div>
@@ -60,19 +66,9 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-8">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`transition-colors hover:text-primary ${
-                  isActive(item.href)
-                    ? "text-primary font-medium"
-                    : "text-foreground"
-                }`}
-              >
+            {navItems.map(item => <Link key={item.href} to={item.href} className={`transition-colors hover:text-primary ${isActive(item.href) ? "text-primary font-medium" : "text-foreground"}`}>
                 {item.label}
-              </Link>
-            ))}
+              </Link>)}
           </nav>
 
           {/* CTA Button */}
@@ -91,20 +87,9 @@ const Header = () => {
             </SheetTrigger>
             <SheetContent side="right" className="w-80">
               <div className="flex flex-col space-y-4 mt-8">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    to={item.href}
-                    onClick={() => setIsOpen(false)}
-                    className={`text-lg transition-colors hover:text-primary ${
-                      isActive(item.href)
-                        ? "text-primary font-medium"
-                        : "text-foreground"
-                    }`}
-                  >
+                {navItems.map(item => <Link key={item.href} to={item.href} onClick={() => setIsOpen(false)} className={`text-lg transition-colors hover:text-primary ${isActive(item.href) ? "text-primary font-medium" : "text-foreground"}`}>
                     {item.label}
-                  </Link>
-                ))}
+                  </Link>)}
                 <Button asChild className="btn-primary mt-4">
                   <Link to="/apply" onClick={() => setIsOpen(false)}>
                     Apply for Loan
@@ -115,8 +100,6 @@ const Header = () => {
           </Sheet>
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default Header;
