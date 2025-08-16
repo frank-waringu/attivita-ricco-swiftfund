@@ -61,7 +61,7 @@ const Apply = () => {
     setTimeout(() => {
       toast({
         title: "Application submitted successfully!",
-        description: "Thank you for your application. We will contact you within 24 hours."
+        description: "Thank you for your application. Please call us to proceed: Head Office (0738810000), Field Officers (0732260000 or 0780800600)."
       });
       
       // Reset form
